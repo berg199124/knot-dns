@@ -114,7 +114,7 @@ view:addr('10.0.0.0/8', policy.all(policy.PASS))
 view:addr('172.16.0.0/12', policy.all(policy.PASS))
 view:addr('192.168.0.0/16', policy.all(policy.PASS))
 view:addr('100.64.0.0/10', policy.all(policy.PASS))
---view:addr('127.0.0.1/32', policy.all(policy.PASS))
+view:addr('127.0.0.1/32', policy.all(policy.PASS))
 
 -- Drop do restante
 view:addr('0.0.0.0/0', policy.all(policy.DROP))
