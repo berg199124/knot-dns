@@ -24,7 +24,7 @@ echo "nameserver 8.8.8.8" > /etc/resolv.conf
 echo "nameserver 8.8.4.4" >> /etc/resolv.conf
 
 echo "[+] Criando usuário knot-resolver..."
-useradd -r -M -s /usr/sbin/nologin knot-resolver || true
+/sbin/useradd -r -M -s /usr/sbin/nologin knot-resolver || true
 
 echo "[+] Criando cache em tmpfs..."
 mkdir -p /var/cache/knot-resolver
@@ -37,6 +37,15 @@ echo "deb [signed-by=/usr/share/keyrings/cznic-labs-pkg.gpg] https://pkg.labs.ni
 apt update
 
 echo "[+] Instalando Knot Resolver e módulos..."
+echo "deb http://deb.debian.org/debian bookworm-backports main" | tee /etc/apt/sources.list.d/backports.list
+apt-get update
+apt-get install -y -t bookworm-backports libbpf0
+cd /tmp
+wget http://ftp.debian.org/debian/pool/main/libb/libbpf/libbpf0_1.2.0-2_amd64.deb
+dpkg -i libbpf0_1.2.0-2_amd64.deb
+apt-get install -f
+rm /etc/apt/sources.list.d/knot-resolver.list || rm /etc/apt/sources.list.d/*.list
+apt-get update
 apt-get install -y knot-resolver knot-resolver-module-http knot-dnsutils
 
 echo "[+] Ajustando arquivos de configuração do sistema..."
