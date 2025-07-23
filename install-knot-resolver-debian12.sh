@@ -14,7 +14,7 @@ echo "[+] Atualizando sistema..."
 apt-get update && apt-get upgrade -y
 
 echo "[+] Instalando pré-requisitos..."
-apt-get install -y apt-transport-https ca-certificates wget curl nano gnupg2 software-properties-common lsb-release git sudo nano bat
+apt-get install -y apt-transport-https ca-certificates wget curl nano gnupg2 software-properties-common lsb-release git sudo nano bat htop
 
 echo "[+] Parando o resolvedor local do sistema (systemd-resolved)..."
 systemctl stop systemd-resolved || true
@@ -28,7 +28,7 @@ echo "[+] Criando usuário knot-resolver..."
 
 echo "[+] Criando cache em tmpfs..."
 mkdir -p /var/cache/knot-resolver
-echo "tmpfs /var/cache/knot-resolver tmpfs rw,size=14336M,uid=knot-resolver,gid=knot-resolver,nosuid,nodev,noexec,mode=0700 0 0" | tee -a /etc/fstab
+echo "tmpfs /var/cache/knot-resolver tmpfs rw,size=8336M,uid=knot-resolver,gid=knot-resolver,nosuid,nodev,noexec,mode=0700 0 0" | tee -a /etc/fstab
 mount -a
 
 echo "[+] Adicionando repositório oficial do Knot Resolver..."
