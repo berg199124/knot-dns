@@ -84,6 +84,7 @@ sed -i 's/^#DefaultLimitNOFILE=.*/DefaultLimitNOFILE=1048576/' /etc/systemd/syst
 sed -i 's/^#DefaultLimitNOFILE=.*/DefaultLimitNOFILE=1048576/' /etc/systemd/user.conf
 
 echo "[+] Criando configuração padrão para o kresd..."
+rm /etc/knot-resolver/kresd.conf
 
 cat <<EOF > /etc/knot-resolver/kresd.conf
 -- SPDX-License-Identifier: CC0-1.0
