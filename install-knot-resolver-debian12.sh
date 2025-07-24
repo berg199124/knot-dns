@@ -127,6 +127,9 @@ echo "[+] Aplicando tuning por unidade kresd..."
 #[Service]
 #LimitNOFILE=1048576
 
+echo 'MAXCONN=100000' >> /etc/pihole/pihole-FTL.conf
+echo 'FTL_MAX_CONCURRENT_QUERIES=1000000' >> /etc/pihole/pihole-FTL.conf
+
 echo "[+] Habilitando serviços kresd para múltiplos núcleos (1..7)..."
 systemctl daemon-reexec
 systemctl daemon-reload
@@ -141,8 +144,10 @@ echo "[✔] Instalação e configuração do Knot Resolver concluídas com suces
 #sudo nano /etc/security/limits.conf
 #*               soft    nofile          65536
 #*               hard    nofile          65536
-#sudo nano /etc/pihole/pihole-FTL.conf
-#MAXCONN=1000
+
+#sudo nano  /etc/pihole/pihole.toml
+#size = 100000 ### CHANGED, default = 10000
+
 #nano /etc/systemd/system/pihole-FTL.service
 #[Service]
 #LimitNOFILE=65536
