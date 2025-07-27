@@ -21,7 +21,7 @@ systemctl stop systemd-resolved || true
 systemctl disable systemd-resolved || true
 rm -f /etc/resolv.conf
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
-echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 
 echo "[+] Criando usuário knot-resolver..."
 /sbin/useradd -r -M -s /usr/sbin/nologin knot-resolver || true
@@ -106,7 +106,7 @@ net.listen('0.0.0.0', 853, { kind = 'tls' })
 net.listen('0.0.0.0', 8453, { kind = 'webmgmt' })
 
 -- Tunning de perfomance
-cache.size = cache.fssize() - 10*MB
+cache.size = cache.fssize() - 512*MB
 
 -- Lista de origens permitidas na querie
 -- Redes Privadas
@@ -127,9 +127,6 @@ echo "[+] Aplicando tuning por unidade kresd..."
 #[Service]
 #LimitNOFILE=1048576
 
-echo 'MAXCONN=100000' >> /etc/pihole/pihole-FTL.conf
-echo 'FTL_MAX_CONCURRENT_QUERIES=1000000' >> /etc/pihole/pihole-FTL.conf
-
 echo "[+] Habilitando serviços kresd para múltiplos núcleos (1..7)..."
 systemctl daemon-reexec
 systemctl daemon-reload
@@ -145,26 +142,60 @@ echo "[✔] Instalação e configuração do Knot Resolver concluídas com suces
 #*               soft    nofile          65536
 #*               hard    nofile          65536
 
-#sudo nano  /etc/pihole/pihole.toml
-#size = 100000 ### CHANGED, default = 10000
-
-#nano /etc/systemd/system/pihole-FTL.service
-#[Service]
-#LimitNOFILE=65536
-
-
-##integrar o Pi-hole ao Knot Resolver##
-curl -sSL https://install.pi-hole.net | bash
-
-#Escolha a opcao customizer
-#PIHOLE_DNS_1=127.0.0.1#1053
-
-
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl restart kresd@{1..7}
-systemctl restart pihole-FTL
 
 #TESTE RESOLVER DNS
-dig @127.0.0.1 -p 1053 google.com
 dig @127.0.0.1 -p 53 google.com
+
+
+#Docker install
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+mkdir -p ~/monitor-knot
+cd ~/monitor-knot
+
+
+cat << 'EOF' > docker-compose.yml
+version: '3'
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:
+EOF
+
+cat << 'EOF' > prometheus.yml
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'knot-resolver'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.16.16.16:8453']
+EOF
+
+docker-compose up -d
+docker ps
+
+
+#PORTA DO Prometheus 9090
+#PORTA DO Grafana 3000
+
+#Grafana data source: prometheus
+#Prometheus server URL *: http://prometheus:9090
