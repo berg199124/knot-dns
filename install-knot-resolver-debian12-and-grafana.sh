@@ -98,10 +98,13 @@ modules = {
         'view',             -- Habilita configurações de segurança
         'http',             -- Para exportar metricas
         'daf',              -- DNS Application Firewall
+        'policy',
+        'cache',
+        'predict'
 }
 
 -- Configuração de rede
-net.listen('0.0.0.0', 1053, { kind = 'dns' })
+net.listen('0.0.0.0', 53, { kind = 'dns' })
 net.listen('0.0.0.0', 853, { kind = 'tls' })
 net.listen('0.0.0.0', 8453, { kind = 'webmgmt' })
 
@@ -115,11 +118,66 @@ view:addr('172.16.0.0/12', policy.all(policy.PASS))
 view:addr('192.168.0.0/16', policy.all(policy.PASS))
 view:addr('100.64.0.0/10', policy.all(policy.PASS))
 view:addr('127.0.0.1/32', policy.all(policy.PASS))
-
+view:addr('200.200.200.0/22', policy.all(policy.PASS))
 -- Drop do restante
 view:addr('0.0.0.0/0', policy.all(policy.DROP))
 
+-- Config Hits Block Dominios
+hints.config('/etc/knot-resolver/hints.block')
+
+-- Teste manual Block Policy Dominios
+
+-- Config Policy Block Dominios
+
+-- Policy IPTRACE - FOR DUBUG
+--policy.add(policy.all(policy.IPTRACE))
+--policy.add(policy.all(policy.DEBUG_ALWAYS))
+
+-- Policy RPZ
+policy.add(
+    policy.rpz(
+        policy.DENY_MSG('Bloqueado Pela Operadora.'),
+        '/etc/knot-resolver/blocklist.rpz',
+        true
+    )
+)
+
+policy.add(
+    policy.rpz(
+        policy.DENY_MSG('Bloqueado Pela Anatel.'),
+        '/etc/knot-resolver/alblocklist.rpz',
+        true
+    )
+)
 EOF
+touch blocklist.rpz
+touch alblocklist.rpz
+
+#BLOCK RPZ
+
+mkdir /etc/knot-resolver/rpz/
+cat <<EOF > /etc/knot-resolver/rpz/generate_rpz.sh
+#!/bin/bash
+wget -O hosts.txt https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+
+INPUT="hosts.txt"
+OUTPUT="/etc/knot-resolver/blocklist.rpz"
+
+echo "\$TTL 30" > $OUTPUT
+echo "@ SOA rpz.urlhaus.abuse.ch. hostmaster.urlhaus.abuse.ch. 2507310022 300 1800 604800 30" >> $OUTPUT
+echo "@ NS localhost." >> $OUTPUT
+echo "" >> $OUTPUT
+
+# Extrai linhas com domínios (ignora comentários e IPs locais)
+grep "^0.0.0.0" "$INPUT" | awk '{print $2}' | sort -u | while read DOMAIN; do
+    echo "$DOMAIN CNAME ." >> $OUTPUT
+done
+
+echo "Arquivo $OUTPUT criado com sucesso."
+
+rm hosts.txt
+EOF
+chmod +x /etc/knot-resolver/rpz/generate_rpz.sh
 
 echo "[+] Aplicando tuning por unidade kresd..."
 #Do 1 ate o 7
@@ -199,3 +257,8 @@ docker ps
 
 #Grafana data source: prometheus
 #Prometheus server URL *: http://prometheus:9090
+
+
+#CRONTAB 
+#0 4 * * 1 /etc/knot-resolver/rpz/generate_rpz.sh
+#0 * * * * /bin/wget -O /etc/knot-resolver/alblocklist.rpz https://repoxxx.xxxxx.com.br/api/public/dl/4L9J1MDO/DNS-RPZ/host.rpz
